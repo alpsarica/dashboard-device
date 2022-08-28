@@ -1,0 +1,37 @@
+{
+  "name": "liveui-dashboard-vehicle",
+  "version": "0.0.2",
+  "private": true,
+  "scripts": {
+    "start": "liveui start",
+    "build": "liveui build",
+    "docker": "docker build -t liveui/liveui-dashboard-vehicle:latest ./docker/",
+    "docker-run": "docker run --rm -it -p 5001:80 liveui/liveui-dashboard-vehicle:latest"
+  },
+  "dependencies": {
+    "mqtt": "^4.3.7",
+    "react": "^16.13.1",
+    "react-dom": "^16.13.1",
+    "uuid": "^8.3.2"
+  },
+  "devDependencies": {
+    "@apollo/client": "^3.5.5",
+    "@babel/core": "^7.9.0",
+    "@babel/preset-env": "^7.9.5",
+    "@babel/preset-react": "^7.9.4",
+    "@eclipse-muto/liveui": "^0.1.6",
+    "@patternfly/patternfly": "^4.159.1",
+    "@patternfly/react-core": "^4.175.4",
+    "@patternfly/react-icons": "^4.26.4",
+    "babel-loader": "^8.1.0",
+    "css-loader": "^3.5.3",
+    "file-loader": "^6.0.0",
+    "graphql": "^15.8.0",
+    "html-loader": "^1.1.0",
+    "image-webpack-loader": "^6.0.0",
+    "react-router-dom": "^5.3.0",
+    "style-loader": "^1.2.1",
+    "svg-url-loader": "^5.0.0",
+    "url-loader": "^4.1.0"
+  }
+}
