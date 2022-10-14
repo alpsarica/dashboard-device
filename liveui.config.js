@@ -3,7 +3,7 @@ module.exports = {
     devPort: 4005,
     microPort: 5005,
     exposes: {
-        'liveui-dashboard-vehicle': './src/index.tsx'
+        'dashboard-device': './src/index.tsx'
     },
     shared: [
         'react',

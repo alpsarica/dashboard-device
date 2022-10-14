@@ -1,5 +1,5 @@
 {
-  "name": "liveui-dashboard-vehicle",
+  "name": "dashboard-device",
   "version": "0.0.2",
   "private": true,
   "main": "dist/index.js",
@@ -36,8 +36,8 @@
     "start": "liveui start",
     "build": "liveui build",
     "build-lib": "liveui build-lib",
-    "docker": "docker build -t liveui/abc:latest ./docker/",
-    "docker-run": "docker run --rm -it -p 5001:80 liveui/abc:latest"
+    "docker": "docker build -t eclipse-muto/dashboard-device:latest ./docker/",
+    "docker-run": "docker run --rm -it -p 5005:80 eclipse-muto/dashboard-device:latest"
   },
   "peerDependencies": {
     "@apollo/client": "^3.7.0",
