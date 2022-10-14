@@ -14,18 +14,16 @@
 //    Composiv.ai, Eteration A.S. - initial API and implementation
 //
 //
-import React from 'react';
+import React from 'react'
 import {
   PageSection,
   Banner,
   PageSectionVariants,
   TextContent,
-  Text,
-  Label,
-} from '@patternfly/react-core';
+  Text
+} from '@patternfly/react-core'
 
 const CustomHeader = ({ title, description, extras, banner }) => {
-
   return (
     <>
       <Banner isSticky>
@@ -41,7 +39,7 @@ const CustomHeader = ({ title, description, extras, banner }) => {
         </TextContent>
       </PageSection>
     </>
-  );
+  )
 }
 
-export default CustomHeader;
+export default CustomHeader

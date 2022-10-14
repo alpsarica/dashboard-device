@@ -14,30 +14,12 @@
 //    Composiv.ai, Eteration A.S. - initial API and implementation
 //
 //
-import { gql } from '@apollo/client'
-
-export const GETVEHICLES = gql`
-
-query GETVEHICLES { 
-    vehicle(filter: $filter) @rest (
-        method: "GET"
-        path: "/search/things?{args}"
-        bodyKey: "body"
-      ) {
-        items
-      }
-  }
-`
-
-export const GETTHINGS = gql`
-
-query GETTHINGS { 
-  things(filter: $filter) @rest (
-      method: "GET"
-      path: "/search/things?{args}"
-      bodyKey: "body"
-    ) {
-      items
-    }
+export function filterList (list, fieldToFilter, filterValue) {
+  return list.filter((listElement) =>
+    fieldToFilter
+      ? listElement[fieldToFilter]
+        .toLowerCase()
+        .includes(filterValue.toLowerCase())
+      : listElement.toLowerCase().includes(filterValue.toLowerCase())
+  )
 }
-`

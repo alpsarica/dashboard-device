@@ -18,11 +18,11 @@
 
 import React from 'react';
 import ReactDOM from 'react-dom';
-import Foo from '../src/index';
+import { VehicleSummary } from '../src/index';
 
 ReactDOM.render(
   <React.StrictMode>
-    <Foo />
+    <VehicleSummary />
   </React.StrictMode>,
   document.getElementById('root')
 );

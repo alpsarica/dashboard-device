@@ -14,30 +14,14 @@
 //    Composiv.ai, Eteration A.S. - initial API and implementation
 //
 //
-import { gql } from '@apollo/client'
+import React from 'react'
 
-export const GETVEHICLES = gql`
-
-query GETVEHICLES { 
-    vehicle(filter: $filter) @rest (
-        method: "GET"
-        path: "/search/things?{args}"
-        bodyKey: "body"
-      ) {
-        items
-      }
-  }
-`
-
-export const GETTHINGS = gql`
-
-query GETTHINGS { 
-  things(filter: $filter) @rest (
-      method: "GET"
-      path: "/search/things?{args}"
-      bodyKey: "body"
-    ) {
-      items
-    }
+const TopicDetail = (topic) => {
+  return (
+    <div>
+      {topic.name}
+    </div>
+  )
 }
-`
+
+export default TopicDetail

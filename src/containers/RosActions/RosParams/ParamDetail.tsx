@@ -14,30 +14,16 @@
 //    Composiv.ai, Eteration A.S. - initial API and implementation
 //
 //
-import { gql } from '@apollo/client'
+import React, { useState } from 'react'
+import { useLocation } from 'react-router-dom'
 
-export const GETVEHICLES = gql`
+const ParamDetail = () => {
+  const location = useLocation()
+  const [parameter] = useState(location.state?.parameter)
 
-query GETVEHICLES { 
-    vehicle(filter: $filter) @rest (
-        method: "GET"
-        path: "/search/things?{args}"
-        bodyKey: "body"
-      ) {
-        items
-      }
-  }
-`
-
-export const GETTHINGS = gql`
-
-query GETTHINGS { 
-  things(filter: $filter) @rest (
-      method: "GET"
-      path: "/search/things?{args}"
-      bodyKey: "body"
-    ) {
-      items
-    }
+  return (
+       <h2>{parameter.pName}</h2>
+  )
 }
-`
+
+export default ParamDetail
