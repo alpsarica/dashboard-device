@@ -149,7 +149,7 @@ const VehicleStack = () => {
       {
         properties: {
           responseTopic: `db-${vehicle.thingId}/agent/${myuuid}`,
-          correlationData: '12333'
+          correlationData: `${myuuid}`
         }
       }
     )
@@ -238,6 +238,25 @@ const VehicleStack = () => {
                             current
                           </Label>
                           )}
+                      {currentStack !== stack.thingId
+                        ? (
+                          <Label
+                            color="orange"
+                            onClick={() => {
+                              if (
+                                confirm(
+                                  'This stack will be set as current and paused. Are you sure?'
+                                )
+                              ) {
+                                onStackClick(stack, 'apply')
+                              }
+                            }}
+                            icon={<i className="fas fa-check-circle"></i>}
+                          >
+                            apply
+                          </Label>
+                          )
+                        : null}
                       {currentStack === stack.thingId
                         ? (
                           <Label
