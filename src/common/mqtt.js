@@ -16,7 +16,7 @@
 //
 import mqtt from 'mqtt/dist/mqtt'
 
-const SANDBOX_URL = 'ws://sandbox.composiv.ai:9001'
+const SANDBOX_URL = 'wss://sandbox.composiv.ai:443/ws'
 
 export function connect ({ thingId, uuid, onConnect, onFailed, onMessage }) {
   const client = mqtt.connect(SANDBOX_URL, { protocolVersion: 5 })
