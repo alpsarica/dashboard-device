@@ -173,9 +173,21 @@ const TopicList = () => {
                         {topic.name} &nbsp; <Label
                             color="green"
                             onClick={() => {
+                              const tid = uuidv4()
                               navigation.push({
-                                pathname: `/vehicle/${vehicle?.thingId}/echo`,
-                                state: { vehicle, topic }
+                                pathname: `/vehicle/${vehicle?.thingId}/telemetry`,
+                                state: {
+                                  vehicle,
+                                  topic,
+                                  definition: {
+                                    topic: topic?.name,
+                                    rate: 10000,
+                                    target: {
+                                      topic: `${vehicle.thingId}/telemetry${topic?.name}/${tid}`,
+                                      correlation: tid
+                                    }
+                                  }
+                                }
                               })
                             }}
                             icon={<i className="fas fa-podcast"></i>}
@@ -196,9 +208,9 @@ const TopicList = () => {
                   )
                 }
               )}
-          </Accordion>
-        </CardBody>
-      </Card>
+        </Accordion>
+      </CardBody>
+    </Card>
     </>
   )
 }

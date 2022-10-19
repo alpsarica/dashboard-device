@@ -111,9 +111,9 @@ const VehicleDetail = () => {
                   }} />
                 </OverflowMenuItem>
                 <OverflowMenuItem>
-                  <MenuButton label="Reset Telemetry" faicon="fa-eye-slash" onClick={() => {
+                  <MenuButton label="Telemetry" faicon="fa-podcast" onClick={() => {
                     navigation.push({
-                      pathname: `/vehicle/${vehicle?.thingId}/echo`,
+                      pathname: `/vehicle/${vehicle?.thingId}/telemetry`,
                       state: { vehicle }
                     })
                   }} />

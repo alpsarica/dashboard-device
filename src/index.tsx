@@ -25,8 +25,10 @@ import NodeDetail from './containers/RosActions/RosNodes/NodeDetail'
 import ParamList from './containers/RosActions/RosParams/ParamList'
 import ParamDetail from './containers/RosActions/RosParams/ParamDetail'
 import VehicleSummary from './containers/Vehicle/VehicleSummary'
+import VehicleTelemetry from './containers/VehicleDetail/telemetry'
+
 export {
-  Vehicle, VehicleSummary, VehicleStack, VehicleDetail,
+  Vehicle, VehicleSummary, VehicleStack, VehicleDetail, VehicleTelemetry,
   TopicList, TopicDetail, TopicEcho,
   NodeList, NodeDetail, ParamList, ParamDetail
 }
