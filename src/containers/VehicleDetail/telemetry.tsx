@@ -252,7 +252,7 @@ const VehicleTelemetry = () => {
       if (t.target.topic === _topic) {
         console.log(JSON.parse(payload.toString()))
         telemetryData[_topic] = JSON.parse(payload.toString())
-        setTelemetryData(telemetryData)
+        setTelemetryData({ ...telemetryData })
         return true
       }
     }
