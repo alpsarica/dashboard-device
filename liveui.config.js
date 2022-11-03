@@ -10,7 +10,6 @@ module.exports = {
         'react-dom',
         "react-router-dom",
         '@patternfly/react-core',
-        "@patternfly/react-icons",
         "html-loader",
         "style-loader",
         'uuid',

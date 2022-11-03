@@ -42,30 +42,55 @@ import CustomHeader from '../../components/CustomHeader'
 import { useLazyQuery } from '@apollo/client'
 import { GETVEHICLES } from '../../api/query/vehicle'
 
-export const VehicleState = ({ state }) => {
-  let color = 'grey'
+import { connect } from '../../common/mqtt'
+import { v4 as uuidv4 } from 'uuid'
+
+export const VehicleState = ({ vehicle }) => {
+  const [myuuid] = useState(uuidv4())
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [connectionStatus, setConnectionStatus] = useState(false)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [client, setClient] = useState<any>()
+  const [state, setState] = useState<any>('unknown')
+  const [targetTopic] = useState(`db-${vehicle.thingId}/agent/${myuuid}`)
+
   let icon = 'fas fa-info-circle'
-  switch (state) {
-    case 'active':
-    case 'start':
-    case 'running':
-      color = 'green'
-      icon = 'pf-icon-running'
-      break
-    case 'killed':
-    case 'stopped':
-    case 'inactive':
-      color = 'red'
-      icon = 'fas fa-pause-circle'
-      break
-    case 'failed':
-      color = 'yellow'
-      break
-  }
+
+  useEffect(() => {
+    const cl = connect({
+      thingId: vehicle.thingId,
+      uuid: myuuid,
+      onConnect: () => setConnectionStatus(true),
+      onFailed: (_err) => {
+        setConnectionStatus(false)
+        color = 'yellow'
+        icon = 'fas fa-pause-circle'
+        setState('unreachable')
+      },
+      onMessage: (_topic, _payload, _packet) => {
+        color = 'green'
+        icon = 'pf-icon-running'
+        setState('online')
+      }
+    })
+    setClient(cl)
+    cl.publish(
+      `${vehicle.thingId}/agent/commands/foor/bar`,
+      JSON.stringify({
+        foor: 'bar'
+      }),
+      {
+        properties: {
+          responseTopic: targetTopic,
+          correlationData: myuuid
+        }
+      }
+    )
+  }, [])
 
   return (
-    <Label color={color} icon={<i className={`${icon}`}></i>}>
-      {state || 'unknown'}
+    <Label color={state === 'online' ? 'green' : 'yellow'} icon={<i className={`${state === 'online' ? 'pf-icon-running' : icon}`}></i>}>
+      { state }
     </Label>
   )
 }
@@ -145,7 +170,7 @@ export const VehicleCard = ({ vehicle }) => {
         }}
       >
         <VehicleState
-          state={vehicle?.features?.stack?.properties?.current?.state}
+          vehicle={vehicle}
         />
       </CardFooter>
     </Card>
@@ -212,8 +237,9 @@ const Vehicle = () => {
               hasGutter
               style={ galleryStyle }>
               {!!models &&
-                models?.map((v, i) => {
-                  return <VehicleCard key={i} vehicle={v}></VehicleCard>
+                models?.map((v, _i) => {
+                  const veh:any = v
+                  return <VehicleCard key={veh.thingId} vehicle={veh}></VehicleCard>
                 })}
             </Gallery>
           </GridItem>
