@@ -63,21 +63,19 @@ export const VehicleState = ({ vehicle }) => {
       onConnect: () => setConnectionStatus(true),
       onFailed: (_err) => {
         setConnectionStatus(false)
-        color = 'yellow'
         icon = 'fas fa-pause-circle'
         setState('unreachable')
       },
       onMessage: (_topic, _payload, _packet) => {
-        color = 'green'
         icon = 'pf-icon-running'
         setState('online')
       }
     })
     setClient(cl)
     cl.publish(
-      `${vehicle.thingId}/agent/commands/foor/bar`,
+      `${vehicle.thingId}/agent/commands/foo/bar`,
       JSON.stringify({
-        foor: 'bar'
+        foo: 'bar'
       }),
       {
         properties: {
@@ -89,7 +87,7 @@ export const VehicleState = ({ vehicle }) => {
   }, [])
 
   return (
-    <Label color={state === 'online' ? 'green' : 'yellow'} icon={<i className={`${state === 'online' ? 'pf-icon-running' : icon}`}></i>}>
+    <Label color={state === 'online' ? 'green' : 'orange'} icon={<i className={`${state === 'online' ? 'pf-icon-running' : icon}`}></i>}>
       { state }
     </Label>
   )
