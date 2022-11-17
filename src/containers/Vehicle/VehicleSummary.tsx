@@ -35,10 +35,10 @@ import { useHistory } from 'react-router-dom'
 
 const VehicleSummary = () => {
   const navigation = useHistory()
-  const [summary, setSummary] = useState({ types: ['ai.composiv.sandbox.f1tenth.simulator:TestCar:1.0.0'], size: 0 })
+  const [summary, setSummary] = useState({ types: ['org.eclipse.muto:EdgeDevice:0.0.1'], size: 0 })
 
   const filter =
-'eq(definition,"ai.composiv.sandbox.f1tenth.simulator:TestCar:1.0.0")'
+  'or(eq(definition,"ai.composiv.sandbox.f1tenth.simulator:TestCar:1.0.0"),eq(definition,"org.eclipse.muto:EdgeDevice:0.0.1"))'
   const [getModels] = useLazyQuery(GETVEHICLES, {
     variables: {
       filter

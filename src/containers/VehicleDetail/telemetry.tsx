@@ -43,13 +43,12 @@ import {
 import HelpIcon from '@patternfly/react-icons/dist/esm/icons/help-icon'
 
 import { connect } from '../../common/mqtt'
-import { v4 as uuidv4 } from 'uuid'
 import ReactJson from 'react-json-view'
 import { filterList } from '../../common/filter'
 import { GETTHINGS } from '../../api/query/vehicle'
 import { useLazyQuery } from '@apollo/client'
 
-const TelemetryForm = ({ client, definition, onSubmit, loading }) => {
+const TelemetryForm = ({ mqtt, definition, onSubmit, loading }) => {
   const [rate, setRate] = useState(definition?.rate)
   const [target, setTarget] = useState(definition?.target?.topic)
 
@@ -64,7 +63,7 @@ const TelemetryForm = ({ client, definition, onSubmit, loading }) => {
     if (definition) {
       definition.rate = rate
       definition.target.topic = target
-      onSubmit(client, definition, 'register')
+      onSubmit(mqtt, definition, 'register')
     }
   }
   return definition
@@ -142,7 +141,7 @@ const TelemetryForm = ({ client, definition, onSubmit, loading }) => {
               }
               isRequired
               fieldId="simple-form-name-01"
-              helperText="Typically starts with the thingId/telemetry/ followed by a unique path identifying the topic and other selectors e.g: 'ai.composiv.sandbox.f1tenth:mycar/telemetry/atopic/abcd-1234-efgh'."
+              helperText="Typically starts with the thingId/telemetry/ followed by a unique path identifying the topic and other selectors e.g: 'org.eclipse.muto:mycar/telemetry/atopic/abcd-1234-efgh'."
             >
               <TextInput
                 isRequired
@@ -175,10 +174,8 @@ const VehicleTelemetry = () => {
   const [expanded, setExpanded] = useState('')
   const [loading, setLoading] = useState(false)
 
-  const [myuuid] = useState(uuidv4())
   const [connectionStatus, setConnectionStatus] = useState(false)
-  const [client, setClient] = useState<any>()
-  const [targetTopic] = useState(`db-${vehicle.thingId}/agent/${myuuid}`)
+  const [mqtt, setMqtt] = useState<any>()
   const [getStacksWithIdLike] = useLazyQuery(GETTHINGS, {
     fetchPolicy: 'no-cache'
   })
@@ -187,7 +184,7 @@ const VehicleTelemetry = () => {
 
   const onCommandResponse = (_topic, payload, _packet) => {
     setLoading(false)
-    if (_topic !== targetTopic) return
+    if (_topic !== mqtt?.targetTopic) return
     const data: any = JSON.parse(payload.toString())
     if (data?.status === 'STOPPED' || data?.status === 'DELETED') {
       setTelemetryData({})
@@ -214,16 +211,15 @@ const VehicleTelemetry = () => {
   useEffect(() => {
     const cl = connect({
       thingId: vehicle.thingId,
-      uuid: myuuid,
       onConnect: () => setConnectionStatus(true),
       onFailed: (err) => !!err && setConnectionStatus(false),
       onMessage: onCommandResponse
     })
-    setClient(cl)
+    setMqtt(cl)
     doTelemetry(cl, undefined, 'reset')
     return () => {
       doTelemetry(cl, undefined, 'stop')
-      !!cl && cl.end(true)
+      !!cl && cl.client.end(true)
     }
   }, [])
 
@@ -241,7 +237,7 @@ const VehicleTelemetry = () => {
 
   const stopAll = () => {
     telemetryList?.forEach(telemetry => {
-      doTelemetry(client, telemetry, 'stop')
+      doTelemetry(mqtt, telemetry, 'stop')
     })
   }
 
@@ -262,8 +258,7 @@ const VehicleTelemetry = () => {
   const doTelemetry = (c, telemetry, action) => {
     if (c && telemetry) {
       c.publish(
-        `${vehicle.thingId}/agent/commands/ros/topic/echo`,
-        JSON.stringify({
+        `${vehicle.thingId}/agent/commands/ros/topic/echo`,{
           topic: telemetry.topic,
           action,
           rate: telemetry.rate,
@@ -271,16 +266,9 @@ const VehicleTelemetry = () => {
             topic: telemetry.target.topic,
             correlation: telemetry.target.correlation
           }
-        }),
-        {
-          properties: {
-            responseTopic: targetTopic,
-            correlationData: myuuid
-          }
-        }
-      )
+        })
       if (action === 'start') {
-        c.subscribe(telemetry.target.topic, (err) => {
+        c.client.subscribe(telemetry.target.topic, (err) => {
           console.log(err)
           setLoading(false)
         })
@@ -292,7 +280,7 @@ const VehicleTelemetry = () => {
   return (
     <>
       {connectionStatus && <Label color="green" icon={<i className="pf-icon-connected"></i>} >connected to sandbox</Label>}
-      <TelemetryForm client={client} definition={newDefinition} loading={loading} onSubmit={ (a, b, c) => {
+      <TelemetryForm mqtt={mqtt} definition={newDefinition} loading={loading} onSubmit={ (a, b, c) => {
         setLoading(true)
         doTelemetry(a, b, c)
         setNewDefinition(undefined)

@@ -31,20 +31,18 @@ import {
 import { useLocation } from 'react-router-dom'
 import { connect } from '../../../common/mqtt'
 import { filterList } from '../../../common/filter'
-import { v4 as uuidv4 } from 'uuid'
 import VehicleCard from '../../VehicleCard'
 import ReactJson from 'react-json-view'
 
 const RosNodeList = () => {
-  const [myuuid] = useState(uuidv4())
   const [nodes, setNodeNames] = useState<any>()
   const [filterValue, setFilterValue] = React.useState('')
   const [connectionStatus, setConnectionStatus] = useState(false)
 
   const location = useLocation()
   const [vehicle] = useState(location.state?.vehicle)
-  const [targetTopic] = useState(`db-${vehicle.thingId}/agent/${myuuid}`)
   const [expanded, setExpanded] = React.useState('')
+  const [client, setClient] = useState<any>()
 
   const displaySize = 'default'
   const onToggle = (id) => {
@@ -56,9 +54,8 @@ const RosNodeList = () => {
   }
 
   useEffect(() => {
-    const client = connect({
+    const cl = connect({
       thingId: vehicle.thingId,
-      uuid: myuuid,
       onConnect: () => setConnectionStatus(true),
       onFailed: (err) => !!err && setConnectionStatus(false),
       onMessage: (_topic, payload, _packet) => {
@@ -66,9 +63,10 @@ const RosNodeList = () => {
         setNodeNames(data?.nodes)
       }
     })
-    getNodes(client)
+    setClient(cl)
+    getNodes(cl)
     return () => {
-      client.end(true)
+      cl.client.end(true)
     }
   }, [])
 
@@ -76,28 +74,14 @@ const RosNodeList = () => {
     setFilterValue(value)
   }
 
-  const getNodes = (client) => {
-    client.publish(
-      `${vehicle.thingId}/agent/commands/ros/node`,
-      JSON.stringify({
-        target: {
-          topic: targetTopic,
-          correlation: myuuid
-        }
-      }),
-      {
-        properties: {
-          responseTopic: targetTopic,
-          correlationData: myuuid
-        }
-      }
-    )
+  const getNodes = (cl) => {
+    cl.publish(`${vehicle.thingId}/agent/commands/ros/node`, {})
   }
 
   return (
     <>
       {connectionStatus && <Label color="green" icon={<i className="pf-icon-connected"></i>} >connected to sandbox</Label>}
-      {vehicle != null && <VehicleCard vehicle={vehicle} />}
+      {vehicle != null && <VehicleCard client={client} vehicle={vehicle} />}
       <Card style={{ textAlign: 'left', margin: '10px' }} component="div" >
         <CardTitle
           style={{

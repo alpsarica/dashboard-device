@@ -16,28 +16,24 @@
 //
 //
 import React, { useEffect, useState } from 'react'
+import F1TenthJoyStick from './F1TenthJoystick'
 
 import {
   Card,
-
-  OverflowMenu,
-  OverflowMenuContent,
-  OverflowMenuGroup,
-  OverflowMenuItem,
-  CardBody,
-  Label
+  CardBody
 } from '@patternfly/react-core'
 import VehicleCard from '../VehicleCard'
-import { useLocation, useParams, useHistory } from 'react-router-dom'
+import { useLocation, useParams } from 'react-router-dom'
 import { GETTHINGS } from '../../api/query/vehicle'
 import { useLazyQuery } from '@apollo/client'
 
-const MenuButton = ({ onClick, faicon, label }) => (<Label color="blue" onClick={onClick} icon={<i className={`fas ${faicon}`}></i>}>{label}</Label>)
+import { connect } from '../../common/mqtt'
 
 const VehicleDetail = () => {
   const location = useLocation()
   const params = useParams()
-  const navigation = useHistory()
+  const [connectionStatus, setConnectionStatus] = useState<any>(false)
+  const [client, setClient] = useState<any>()
   const [vehicle, setVehicle] = useState(location.state?.vehicle)
   const [getStacksWithIdLike] = useLazyQuery(GETTHINGS, {
     fetchPolicy: 'no-cache'
@@ -52,10 +48,27 @@ const VehicleDetail = () => {
     }).then((result) => {
       if (result?.data?.things) {
         setVehicle(result?.data?.things.items[0])
-        console.log('getVehicle :', result?.data?.things)
       }
     })
   }
+
+  useEffect(() => {
+    if (vehicle?.thingId) {
+      const c = connect({
+        thingId: vehicle?.thingId,
+        onConnect: () => setConnectionStatus(true),
+        onFailed: (err) => !!err && setConnectionStatus(false),
+        onMessage: (_topic, _payload, _packet) => {
+
+        }
+      })
+      setClient(c)
+      return () => {
+        c.client.end(true)
+      }
+    }
+    return ()=>{}
+  }, [vehicle])
 
   useEffect(() => {
     if (!vehicle) {
@@ -65,7 +78,7 @@ const VehicleDetail = () => {
 
   return (
     <div>
-      {vehicle != null && <VehicleCard vehicle={vehicle} />}
+      {vehicle != null && <VehicleCard vehicle={vehicle} client={client} connectionStatus={connectionStatus} />}
 
       <Card
         style={{
@@ -75,52 +88,7 @@ const VehicleDetail = () => {
         component="div"
       >
         <CardBody>
-          <OverflowMenu breakpoint="sm">
-            <OverflowMenuContent isPersistent>
-              <OverflowMenuGroup groupType="button">
-                <OverflowMenuItem>
-                  <MenuButton label="Stacks" faicon="fa-cubes" onClick={() => {
-                    navigation.push({
-                      pathname: `/vehicle/${vehicle?.thingId}/stacks`,
-                      state: { vehicle }
-                    })
-                  }} />
-                </OverflowMenuItem>
-                <OverflowMenuItem>
-                  <MenuButton label="Nodes" faicon="fa-cube" onClick={() => {
-                    navigation.push({
-                      pathname: `/vehicle/${vehicle?.thingId}/nodes`,
-                      state: { vehicle }
-                    })
-                  }} />
-                </OverflowMenuItem>
-                <OverflowMenuItem>
-                  <MenuButton label="Topics" faicon="fa-envelope" onClick={() => {
-                    navigation.push({
-                      pathname: `/vehicle/${vehicle?.thingId}/topics`,
-                      state: { vehicle }
-                    })
-                  }} />
-                </OverflowMenuItem>
-                <OverflowMenuItem>
-                  <MenuButton label="Parameters" faicon="fa-wrench" onClick={() => {
-                    navigation.push({
-                      pathname: `/vehicle/${vehicle?.thingId}/params`,
-                      state: { vehicle }
-                    })
-                  }} />
-                </OverflowMenuItem>
-                <OverflowMenuItem>
-                  <MenuButton label="Telemetry" faicon="fa-podcast" onClick={() => {
-                    navigation.push({
-                      pathname: `/vehicle/${vehicle?.thingId}/telemetry`,
-                      state: { vehicle }
-                    })
-                  }} />
-                </OverflowMenuItem>
-              </OverflowMenuGroup>
-            </OverflowMenuContent>
-          </OverflowMenu>
+          <F1TenthJoyStick vehicle={vehicle} client={client} />
         </CardBody>
         <br />
       </Card>

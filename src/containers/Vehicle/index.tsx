@@ -17,6 +17,8 @@
 //
 import React, { useState, useEffect } from 'react'
 import { useHistory } from 'react-router-dom'
+import { v4 as uuidv4 } from 'uuid'
+
 import {
   Divider,
   PageSection,
@@ -43,47 +45,22 @@ import { useLazyQuery } from '@apollo/client'
 import { GETVEHICLES } from '../../api/query/vehicle'
 
 import { connect } from '../../common/mqtt'
-import { v4 as uuidv4 } from 'uuid'
 
-export const VehicleState = ({ vehicle }) => {
-  const [myuuid] = useState(uuidv4())
+export const VehicleState = ({ vehicle, mqtt }) => {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [connectionStatus, setConnectionStatus] = useState(false)
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [client, setClient] = useState<any>()
   const [state, setState] = useState<any>('unknown')
-  const [targetTopic] = useState(`db-${vehicle.thingId}/agent/${myuuid}`)
 
   let icon = 'fas fa-info-circle'
 
   useEffect(() => {
-    const cl = connect({
-      thingId: vehicle.thingId,
-      uuid: myuuid,
-      onConnect: () => setConnectionStatus(true),
-      onFailed: (_err) => {
-        setConnectionStatus(false)
-        icon = 'fas fa-pause-circle'
-        setState('unreachable')
-      },
-      onMessage: (_topic, _payload, _packet) => {
-        icon = 'pf-icon-running'
-        setState('online')
-      }
+    mqtt.ping(vehicle.thingId, () => {
+      icon = 'pf-icon-running'
+      setState('online')
     })
-    setClient(cl)
-    cl.publish(
-      `${vehicle.thingId}/agent/commands/foo/bar`,
-      JSON.stringify({
-        foo: 'bar'
-      }),
-      {
-        properties: {
-          responseTopic: targetTopic,
-          correlationData: myuuid
-        }
-      }
-    )
+
+    return () => {
+
+    }
   }, [])
 
   return (
@@ -93,7 +70,7 @@ export const VehicleState = ({ vehicle }) => {
   )
 }
 
-export const VehicleCard = ({ vehicle }) => {
+export const VehicleCard = ({ vehicle, mqtt }) => {
   const history = useHistory()
 
   return (
@@ -130,9 +107,6 @@ export const VehicleCard = ({ vehicle }) => {
             <DataListItemRow>
               <DataListItemCells
                 dataListCells={[
-                  <DataListCell key="primary content">
-                    <span id="compact-item1">Namespace</span>
-                  </DataListCell>,
                   <DataListCell key="secondary content">
                     {vehicle?.thingId.split(':')[0]}
                   </DataListCell>
@@ -144,11 +118,8 @@ export const VehicleCard = ({ vehicle }) => {
             <DataListItemRow>
               <DataListItemCells
                 dataListCells={[
-                  <DataListCell key="primary content">
-                    <span id="compact-item1">Serial</span>
-                  </DataListCell>,
                   <DataListCell key="secondary content">
-                    {vehicle?.attributes?.serial}
+                    {vehicle?.attributes?.brand} {vehicle?.attributes?.model}
                   </DataListCell>
                 ]}
               />
@@ -164,11 +135,13 @@ export const VehicleCard = ({ vehicle }) => {
           overflow: 'hidden',
           fontWeight: 500,
           background: '#eee',
-          color: 'white'
+          color: 'white',
+          padding: '15px'
         }}
       >
         <VehicleState
           vehicle={vehicle}
+          mqtt={mqtt}
         />
       </CardFooter>
     </Card>
@@ -176,13 +149,31 @@ export const VehicleCard = ({ vehicle }) => {
 }
 
 const Vehicle = () => {
+  const [connectionStatus, setConnectionStatus] = useState(false)
+
   const [alerts] = useState([])
   const [filterValue, setFilterValue] = useState('')
+  const [mqtt, setMqtt] = useState<any>()
 
   const [models, setModels] = useState([])
+  useEffect(() => {
+    const mqtt = connect({
+      thingId: uuidv4(),
+      onConnect: () => setConnectionStatus(true),
+      onFailed: (_err) => {
+        setConnectionStatus(false)
+      },
+      onMessage: (_topic, _payload, _packet) => {
+      }
+    })
+    setMqtt(mqtt)
+    return () => {
+      mqtt?.client.end(true)
+    }
+  }, [])
 
   const filter =
-    'eq(definition,"ai.composiv.sandbox.f1tenth.simulator:TestCar:1.0.0")'
+    'or(eq(definition,"ai.composiv.sandbox.f1tenth.simulator:TestCar:1.0.0"),eq(definition,"org.eclipse.muto:EdgeDevice:0.0.1"))'
   const [getModels, { data: modelsList }] = useLazyQuery(GETVEHICLES, {
     variables: {
       filter
@@ -237,7 +228,7 @@ const Vehicle = () => {
               {!!models &&
                 models?.map((v, _i) => {
                   const veh:any = v
-                  return <VehicleCard key={veh.thingId} vehicle={veh}></VehicleCard>
+                  return <VehicleCard key={veh.thingId} vehicle={veh} mqtt={mqtt}></VehicleCard>
                 })}
             </Gallery>
           </GridItem>

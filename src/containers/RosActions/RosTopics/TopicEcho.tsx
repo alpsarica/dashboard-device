@@ -26,23 +26,19 @@ import {
 } from '@patternfly/react-core'
 
 import { connect } from '../../../common/mqtt'
-import { v4 as uuidv4 } from 'uuid'
 import ReactJson from 'react-json-view'
 
 const TopicEcho = () => {
-  const [myuuid] = useState(uuidv4())
   const [connectionStatus, setConnectionStatus] = useState(false)
   const location = useLocation()
   const [vehicle] = useState(location.state?.vehicle)
   const [client, setClient] = useState<any>()
   const [topic] = useState(location.state?.topic)
-  const [targetTopic] = useState(`db-${vehicle.thingId}/agent/${myuuid}`)
   const [topicEcho, setEcho] = useState({})
 
   useEffect(() => {
     const cl = connect({
       thingId: vehicle.thingId,
-      uuid: myuuid,
       onConnect: () => setConnectionStatus(true),
       onFailed: (err) => !!err && setConnectionStatus(false),
       onMessage: (_topic, payload, _packet) => {
@@ -60,23 +56,11 @@ const TopicEcho = () => {
   }, [])
 
   const startEcho = (client, action) => {
-    client.publish(
-      `${vehicle.thingId}/agent/commands/ros/topic/echo`,
-      JSON.stringify({
-        topic: topic?.name,
-        action,
-        rate: 10000,
-        target: {
-          topic: targetTopic,
-          correlation: myuuid
-        }
-      }),
-      {
-        properties: {
-          responseTopic: targetTopic,
-          correlationData: myuuid
-        }
-      }
+    client.publish(`${vehicle.thingId}/agent/commands/ros/topic/echo`, {
+      topic: topic?.name,
+      action,
+      rate: 10000
+    }
     )
   }
 

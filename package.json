@@ -36,8 +36,8 @@
     "start": "liveui start",
     "build": "liveui build",
     "build-lib": "liveui build-lib",
-    "docker": "docker build -t eclipse-muto/dashboard-device:latest ./docker/",
-    "docker-run": "docker run --rm -it -p 5005:80 eclipse-muto/dashboard-device:latest"
+    "docker": "docker build -t composiv/dashboard-device:latest ./docker/",
+    "docker-run": "docker run --rm -it -p 5005:80 composiv/dashboard-device:latest"
   },
   "peerDependencies": {
     "@apollo/client": "^3.7.0",
@@ -68,6 +68,7 @@
     "eslint-config-standard": "^17.0.0",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
+    "react-joystick-component": "^4.1.0",
     "react-scripts": "5.0.1",
     "typescript": "^4.8.3",
     "webpack": "4.44.2"

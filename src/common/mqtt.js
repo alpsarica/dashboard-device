@@ -15,20 +15,68 @@
 //
 //
 import mqtt from 'mqtt/dist/mqtt'
+import { v4 as uuidv4 } from 'uuid'
 
 const SANDBOX_URL = 'wss://sandbox.composiv.ai:443/ws'
 
-export function connect ({ thingId, uuid, onConnect, onFailed, onMessage }) {
+export function connect ({ thingId, onConnect, onFailed, onMessage }) {
+  const correlationId = uuidv4()
+  const targetTopic = `db-${thingId}/agent/${correlationId}`
+
   const client = mqtt.connect(SANDBOX_URL, { protocolVersion: 5 })
+  client.on('error', (err) => { onFailed(err) })
   client.on('connect', (a) => {
-    console.log(a)
     onConnect()
-    client.subscribe(`db-${thingId}/agent/${uuid}`, (err) => {
-      onFailed(err)
+    client.subscribe(targetTopic, (_err) => {})
+    client.on('message', (topic, payload, packet) => {
+      onMessage(topic, payload, packet)
     })
   })
-  client.on('message', (topic, payload, packet) => {
-    onMessage(topic, payload, packet)
-  })
-  return client
+
+  return {
+    client,
+    targetTopic,
+    correlationId,
+    publish: (topic, payload) => {
+      client.publish(
+        topic,
+        JSON.stringify({
+          ...payload,
+          target: {
+            topic: targetTopic,
+            correlation: correlationId
+          }
+        }),
+        {
+          properties: {
+            responseTopic: targetTopic,
+            correlationData: correlationId
+          }
+        })
+    },
+    ping: (thing, response) => {
+      const ttopic = `ping-${thing}/agent/${correlationId}`
+      client.subscribe(ttopic, (_err) => {})
+      client.on('message', (topic, payload, packet) => {
+        if (topic === ttopic) {
+          response(topic, payload, packet)
+          client.unsubscribe(ttopic)
+        }
+      })
+      client.publish(
+        `${thing}/agent/commands/foo/bar`, JSON.stringify({
+          foo: 'bar',
+          target: {
+            topic: ttopic,
+            correlation: correlationId
+          }
+        }),
+        {
+          properties: {
+            responseTopic: ttopic,
+            correlationData: correlationId
+          }
+        })
+    }
+  }
 }

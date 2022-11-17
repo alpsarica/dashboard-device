@@ -33,15 +33,15 @@ import {
 
 import { connect } from '../../../common/mqtt'
 import { filterList } from '../../../common/filter'
-import { v4 as uuidv4 } from 'uuid'
 import VehicleCard from '../../VehicleCard'
 import ReactJson from 'react-json-view'
+import { v4 as uuidv4 } from 'uuid'
 
 const TopicList = () => {
-  const [myuuid] = useState(uuidv4())
-  const [connectionStatus, setConnectionStatus] = useState(false)
+  const [connectionStatus, setConnectionStatus] = useState<any>(false)
   const [topicList, setTopicList] = useState(null)
   const [filterValue, setFilterValue] = useState('')
+  const [client, setClient] = useState<any>()
 
   const [expanded, setExpanded] = React.useState('')
 
@@ -49,7 +49,6 @@ const TopicList = () => {
   const navigation = useHistory()
 
   const [vehicle] = useState(location.state?.vehicle)
-  const [targetTopic] = useState(`db-${vehicle.thingId}/agent/${myuuid}`)
 
   const displaySize = 'default'
   const onToggle = (id) => {
@@ -61,9 +60,8 @@ const TopicList = () => {
   }
 
   useEffect(() => {
-    const client = connect({
+    const c = connect({
       thingId: vehicle.thingId,
-      uuid: myuuid,
       onConnect: () => setConnectionStatus(true),
       onFailed: (err) => !!err && setConnectionStatus(false),
       onMessage: (_topic, payload, _packet) => {
@@ -71,10 +69,11 @@ const TopicList = () => {
         analyzeResponse(data)
       }
     })
-    getTopics(client)
+    setClient(c)
+    getTopics(c)
     console.log(vehicle)
     return () => {
-      client.end(true)
+      c.client.end(true)
     }
   }, [])
 
@@ -85,53 +84,40 @@ const TopicList = () => {
   const analyzeResponse = (response) => {
     const topics: any = []
 
-    response.pubs.map((topic) => {
-      topics.push({
-        name: topic[0],
-        type: topic[1],
-        publishers: topic[2]
-      })
-    })
-
-    // eslint-disable-next-line array-callback-return
-    response.subs.map((topic) => {
-      const existTopic = topics.find((t) => t.name === topic[0])
-      if (existTopic) {
-        existTopic.subscribers = topic[2]
-      } else {
+    if (response?.subs && response?.pubs) {
+      response.pubs.map((topic) => {
         topics.push({
           name: topic[0],
           type: topic[1],
-          subscribers: topic[2]
+          publishers: topic[2]
         })
-      }
-    })
-    console.log(topics)
-    setTopicList(topics)
+      })
+
+      // eslint-disable-next-line array-callback-return
+      response.subs.map((topic) => {
+        const existTopic = topics.find((t) => t.name === topic[0])
+        if (existTopic) {
+          existTopic.subscribers = topic[2]
+        } else {
+          topics.push({
+            name: topic[0],
+            type: topic[1],
+            subscribers: topic[2]
+          })
+        }
+      })
+      console.log(topics)
+      setTopicList(topics)
+    }
   }
 
   const getTopics = (client) => {
-    client.publish(
-      `${vehicle.thingId}/agent/commands/ros/topic`,
-      JSON.stringify({
-        target: {
-          topic: targetTopic,
-          correlation: myuuid
-        }
-      }),
-      {
-        properties: {
-          responseTopic: targetTopic,
-          correlationData: myuuid
-        }
-      }
-    )
+    client.publish(`${vehicle.thingId}/agent/commands/ros/topic`, {})
   }
 
   return (
     <>
-      {connectionStatus && <Label color="green" icon={<i className="pf-icon-connected"></i>} >connected to sandbox</Label>}
-      {vehicle != null && <VehicleCard vehicle={vehicle} />}
+      {vehicle != null && <VehicleCard client={client} vehicle={vehicle} connectionStatus={connectionStatus} />}
       <Card style={{ textAlign: 'left', margin: '10px' }} component="div" >
         <CardTitle
           style={{

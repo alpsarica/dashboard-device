@@ -41,7 +41,6 @@ import { v4 as uuidv4 } from 'uuid'
 import VehicleCard from '../VehicleCard'
 
 const VehicleStack = () => {
-  const [myuuid] = useState(uuidv4())
   const location = useLocation()
   const [vehicle, setVehicle] = useState(location.state.vehicle)
 
@@ -57,7 +56,7 @@ const VehicleStack = () => {
     fetchPolicy: 'no-cache'
   })
 
-  const [connectionStatus, setConnectionStatus] = useState(false)
+  const [connectionStatus, setConnectionStatus] = useState<any>(false)
   const [mqttClient, setMqttClient] = useState<any>()
 
   const addAlert = (title, description, timeout = 5000) => {
@@ -72,9 +71,8 @@ const VehicleStack = () => {
   }
 
   useEffect(() => {
-    const client = connect({
+    const mq = connect({
       thingId: vehicle.thingId,
-      uuid: myuuid,
       onConnect: () => setConnectionStatus(true),
       onFailed: (err) => !!err && setConnectionStatus(false),
       onMessage: (_topic, payload, _packet) => {
@@ -84,22 +82,22 @@ const VehicleStack = () => {
           `Completed to publish and stack received: ${resp?.command}`,
           5000
         )
-        console.log(payload.toString())
         setTimeout(() => {
           getStacks('*')
         }, 2000)
       }
     })
-    setMqttClient(client)
+    setMqttClient(mq)
     return () => {
-      client.end(true)
+      mq.client.end(true)
     }
   }, [])
 
+  const SRQL = 'or(eq(definition,"ai.composiv.sandbox.f1tenth:Stack:1.0.0"),eq(definition,"org.eclipse.muto:Stack:0.0.1"))'
   const getStacks = (nameLike) => {
     getStacksWithIdLike({
       variables: {
-        filter: `and(eq(definition,"ai.composiv.sandbox.f1tenth:Stack:1.0.0"),like(thingId,"*${nameLike}*"))`
+        filter: `and(${SRQL}, like(thingId,"*${nameLike}*"))`
       },
       fetchPolicy: 'no-cache'
     }).then((result) => {
@@ -142,15 +140,9 @@ const VehicleStack = () => {
   const onStackClick = (stack, action) => {
     mqttClient?.publish(
       `${vehicle.thingId}/stack/commands/${action}`,
-      JSON.stringify({
+      {
         name: stack.name,
         stackId: stack.thingId
-      }),
-      {
-        properties: {
-          responseTopic: `db-${vehicle.thingId}/agent/${myuuid}`,
-          correlationData: `${myuuid}`
-        }
       }
     )
   }
@@ -159,13 +151,8 @@ const VehicleStack = () => {
     <>
 
       {<>
-        {connectionStatus && (
-          <Label color="green" icon={<i className="pf-icon-connected"></i>}>
-            connected to sandbox
-          </Label>
-        )}
         <AlertGroup isLiveRegion>{alerts}</AlertGroup>
-      </>}      {vehicle != null && <VehicleCard vehicle={vehicle} />}
+      </>}      {vehicle != null && <VehicleCard vehicle={vehicle} client={mqttClient} connectionStatus={connectionStatus} />}
       <Card style={{ textAlign: 'left', margin: '10px' }} component="div" >
         <CardTitle
           style={{
