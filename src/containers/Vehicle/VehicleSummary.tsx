@@ -25,35 +25,26 @@ import {
   DataListCell,
   DataListItem,
   DataListItemCells,
-  DataListItemRow
+  DataListItemRow,
+  Spinner
 } from '@patternfly/react-core'
 
-import { useLazyQuery } from '@apollo/client'
-import { GETVEHICLES } from '../../api/query/vehicle'
-
 import { useHistory } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
+import { VFILTER, things } from '../../api/query/vehicle'
 
 const VehicleSummary = () => {
   const navigation = useHistory()
-  const [summary, setSummary] = useState({ types: ['org.eclipse.muto:EdgeDevice:0.0.1'], size: 0 })
-
-  const filter =
-  'or(eq(definition,"ai.composiv.sandbox.f1tenth.simulator:TestCar:1.0.0"),eq(definition,"org.eclipse.muto:EdgeDevice:0.0.1"))'
-  const [getModels] = useLazyQuery(GETVEHICLES, {
-    variables: {
-      filter
-    },
-    fetchPolicy: 'no-cache'
-  })
+  const [summary, setSummary] = useState({ types: ['org.eclipse.muto:EdgeDevice:0.0.1'], size: '-' })
+  const { data, status } = useQuery(['summary', VFILTER], () => things(VFILTER))
 
   useEffect(() => {
-    getModels().then((rdata) => {
-      if (rdata) {
-        const { types } = summary
-        setSummary({ types, size: rdata?.data?.vehicle?.items?.length })
-      }
-    })
-  }, [])
+    console.log(data)
+    if (data?.data) {
+      const { types } = summary
+      setSummary({ types, size: data?.data?.items?.length })
+    }
+  }, [data])
 
   return (
         <Card
@@ -80,7 +71,7 @@ const VehicleSummary = () => {
               color: 'white'
             }}
           >
-            Vehicles
+            Vehicles { status === 'loading' ? <Spinner isSVG size="lg" aria-label="Adding telemetry" /> : null }
           </CardTitle>
           <CardBody>
             <DataList aria-label="Compact data list example" isCompact>

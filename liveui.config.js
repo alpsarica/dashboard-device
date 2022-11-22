@@ -6,14 +6,16 @@ module.exports = {
         'dashboard-device': './src/index.tsx'
     },
     shared: [
+        'axios',
+        'mqtt',
+        'mqtt-react-hooks',
         'react',
         'react-dom',
-        "react-router-dom",
+        'react-router-dom',
         '@patternfly/react-core',
-        "html-loader",
-        "style-loader",
-        'uuid',
-        'graphql',
-        '@apollo/client'   
+        '@tanstack/react-query',
+        'html-loader',
+        'style-loader',
+        'uuid'
     ],
 }

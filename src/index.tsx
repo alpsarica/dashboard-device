@@ -17,7 +17,6 @@
 import Vehicle from './containers/Vehicle'
 import VehicleStack from './containers/VehicleStack'
 import VehicleDetail from './containers/VehicleDetail'
-import TopicEcho from './containers/RosActions/RosTopics/TopicEcho'
 import TopicList from './containers/RosActions/RosTopics/TopicList'
 import TopicDetail from './containers/RosActions/RosTopics/TopicDetail'
 import NodeList from './containers/RosActions/RosNodes/NodeList'
@@ -29,6 +28,6 @@ import VehicleTelemetry from './containers/VehicleDetail/telemetry'
 
 export {
   Vehicle, VehicleSummary, VehicleStack, VehicleDetail, VehicleTelemetry,
-  TopicList, TopicDetail, TopicEcho,
+  TopicList, TopicDetail,
   NodeList, NodeDetail, ParamList, ParamDetail
 }

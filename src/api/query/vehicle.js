@@ -14,30 +14,31 @@
 //    Composiv.ai, Eteration A.S. - initial API and implementation
 //
 //
-import { gql } from '@apollo/client'
+import axios from 'axios'
+import { useQuery } from '@tanstack/react-query'
 
-export const GETVEHICLES = gql`
+export const VFILTER = 'or(eq(definition,"ai.composiv.sandbox.f1tenth.simulator:TestCar:1.0.0"),eq(definition,"org.eclipse.muto:EdgeDevice:0.0.1"))'
+export const SFILTER = 'or(eq(definition,"ai.composiv.sandbox.f1tenth:Stack:1.0.0"),eq(definition,"org.eclipse.muto:Stack:0.0.1"))'
 
-query GETVEHICLES { 
-    vehicle(filter: $filter) @rest (
-        method: "GET"
-        path: "/search/things?{args}"
-        bodyKey: "body"
-      ) {
-        items
-      }
-  }
-`
-
-export const GETTHINGS = gql`
-
-query GETTHINGS { 
-  things(filter: $filter) @rest (
-      method: "GET"
-      path: "/search/things?{args}"
-      bodyKey: "body"
-    ) {
-      items
-    }
+export function things (filter) {
+  return axios.get(`/api/2/search/things?filter=${filter}`)
 }
-`
+
+export function GetDevice ({ thingid }) {
+  return useQuery({
+    queryKey: ['vehicle_detail', thingid],
+    queryFn: () => things(`eq(thingId,"${thingid}")`),
+    staleTime: 0,
+    cacheTime: 1000,
+    enabled: false
+  })
+}
+
+export function GetStacksWitdIdLike ({ nameLike }) {
+  return useQuery({
+    queryKey: ['stacklist_like', nameLike],
+    queryFn: () => things(`and(${SFILTER}, like(thingId,"*${nameLike}*"))`),
+    staleTime: 0,
+    cacheTime: 1000
+  })
+}

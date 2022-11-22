@@ -22,24 +22,26 @@ import {
 
 import { Joystick } from 'react-joystick-component'
 import { IJoystickUpdateEvent } from 'react-joystick-component/build/lib/Joystick'
+import { useMqttState } from 'mqtt-react-hooks'
 
-const F1TenthJoyStick = ({ vehicle, client }) => {
+const F1TenthJoyStick = ({ vehicle }) => {
   const [mux, setMux] = useState<any>('reset')
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [_joyeevent, setJoyEvent] = useState<IJoystickUpdateEvent>()
+  const { client } = useMqttState()
 
   const doRemoteControl = (event) => {
     const c: any = client
     if (client && event) {
       c.publish(
         `${vehicle.thingId}/agent/commands/bcx/rc`,
-        {
+        JSON.stringify({
           control: event?.control || 'reset',
           type: event?.type,
           direction: event?.direction,
           x: event?.x || 0,
           y: event?.y || 0
-        }
+        })
       )
     }
   }
@@ -51,7 +53,6 @@ const F1TenthJoyStick = ({ vehicle, client }) => {
   }
   const handleStop = (event: IJoystickUpdateEvent) => {
     // if (joyeevent?.type !== event.type || joyeevent?.direction !== event.direction) {
-    console.log(event)
     setJoyEvent(event)
     doRemoteControl(event)
     // }
@@ -59,7 +60,6 @@ const F1TenthJoyStick = ({ vehicle, client }) => {
 
   const handleMuxToggle = (isSelected, event) => {
     const id = event.currentTarget.id
-    console.log(isSelected, id)
     doRemoteControl({
       control: id,
       type: 'stop',

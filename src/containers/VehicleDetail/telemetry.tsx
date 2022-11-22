@@ -18,6 +18,7 @@
 //
 import React, { useEffect, useState } from 'react'
 import { useLocation } from 'react-router-dom'
+
 import {
   Label,
   Card,
@@ -41,14 +42,14 @@ import {
   Spinner
 } from '@patternfly/react-core'
 import HelpIcon from '@patternfly/react-icons/dist/esm/icons/help-icon'
+import { useMqttState, useSubscription } from 'mqtt-react-hooks'
 
-import { connect } from '../../common/mqtt'
 import ReactJson from 'react-json-view'
 import { filterList } from '../../common/filter'
-import { GETTHINGS } from '../../api/query/vehicle'
-import { useLazyQuery } from '@apollo/client'
+import { GetDevice } from '../../api/query/vehicle'
+import { publishCommand, thingTopic } from '../../common/mqtt'
 
-const TelemetryForm = ({ mqtt, definition, onSubmit, loading }) => {
+const TelemetryForm = ({ definition, onSubmit, loading }) => {
   const [rate, setRate] = useState(definition?.rate)
   const [target, setTarget] = useState(definition?.target?.topic)
 
@@ -63,103 +64,137 @@ const TelemetryForm = ({ mqtt, definition, onSubmit, loading }) => {
     if (definition) {
       definition.rate = rate
       definition.target.topic = target
-      onSubmit(mqtt, definition, 'register')
+      onSubmit(definition, 'register')
     }
   }
   return definition
     ? (!loading
         ? (
-            <Card style={{ textAlign: 'left', margin: '10px' }} component="div"><CardBody><Form>
-            <FormGroup label="Topic name" fieldId="simple-form-note-01">
-              <TextInput isDisabled type="text" id="simple-form-note-01" name="simple-form-number" value={definition?.topic} />
-            </FormGroup>
-            <FormGroup
-              label="Rate(ms)"
-              labelIcon={
-                <Popover
-                  headerContent={
-                    <div>
-                      The number of milliseconds between each message published. (i.e. 1000ms for a second)
-                    </div>
-                  }
-                  bodyContent={
-                    <div>
-                      Milli seconds between each message.
-                    </div>
-                  }
+        <Card style={{ textAlign: 'left', margin: '10px' }} component="div"><CardBody><Form>
+          <FormGroup label="Topic name" fieldId="simple-form-note-01">
+            <TextInput isDisabled type="text" id="simple-form-note-01" name="simple-form-number" value={definition?.topic} />
+          </FormGroup>
+          <FormGroup
+            label="Rate(ms)"
+            labelIcon={
+              <Popover
+                headerContent={
+                  <div>
+                    The number of milliseconds between each message published. (i.e. 1000ms for a second)
+                  </div>
+                }
+                bodyContent={
+                  <div>
+                    Milli seconds between each message.
+                  </div>
+                }
+              >
+                <button
+                  type="button"
+                  aria-label="More info for name field"
+                  onClick={e => e.preventDefault()}
+                  aria-describedby="simple-form-name-01"
+                  className="pf-c-form__group-label-help"
                 >
-                  <button
-                    type="button"
-                    aria-label="More info for name field"
-                    onClick={e => e.preventDefault()}
-                    aria-describedby="simple-form-name-01"
-                    className="pf-c-form__group-label-help"
-                  >
-                    <HelpIcon noVerticalAlign />
-                  </button>
-                </Popover>
-              }
+                  <HelpIcon noVerticalAlign />
+                </button>
+              </Popover>
+            }
+            isRequired
+            fieldId="simple-form-name-01"
+            helperText="Milliseconds between each message."
+          >
+            <TextInput
               isRequired
-              fieldId="simple-form-name-01"
-              helperText="Milliseconds between each message."
-            >
-              <TextInput
-                isRequired
-                type="number"
-                id="simple-form-name-01"
-                name="simple-form-name-01"
-                aria-describedby="simple-form-name-01-helper"
-                value={rate}
-                onChange={handleRateChange}
-              />
-            </FormGroup>
-            <FormGroup
-              label="Target mqtt channnel"
-              labelIcon={
-                <Popover
-                  headerContent={
-                    <div>
-                      The name of the mqtt channel where this information will be published
-                    </div>
-                  }
-                  bodyContent={
-                    <div>
-                      Typically starts with the thingId/telemetry/ followed by a unique path.
-                    </div>
-                  }
+              type="number"
+              id="simple-form-name-01"
+              name="simple-form-name-01"
+              aria-describedby="simple-form-name-01-helper"
+              value={rate}
+              onChange={handleRateChange}
+            />
+          </FormGroup>
+          <FormGroup
+            label="Target mqtt channnel"
+            labelIcon={
+              <Popover
+                headerContent={
+                  <div>
+                    The name of the mqtt channel where this information will be published
+                  </div>
+                }
+                bodyContent={
+                  <div>
+                    Typically starts with the thingId/telemetry/ followed by a unique path.
+                  </div>
+                }
+              >
+                <button
+                  type="button"
+                  aria-label="More info for name field"
+                  onClick={e => e.preventDefault()}
+                  aria-describedby="simple-form-name-01"
+                  className="pf-c-form__group-label-help"
                 >
-                  <button
-                    type="button"
-                    aria-label="More info for name field"
-                    onClick={e => e.preventDefault()}
-                    aria-describedby="simple-form-name-01"
-                    className="pf-c-form__group-label-help"
-                  >
-                    <HelpIcon noVerticalAlign />
-                  </button>
-                </Popover>
-              }
+                  <HelpIcon noVerticalAlign />
+                </button>
+              </Popover>
+            }
+            isRequired
+            fieldId="simple-form-name-01"
+            helperText="Typically starts with the thingId/telemetry/ followed by a unique path identifying the topic and other selectors e.g: 'org.eclipse.muto:mycar/telemetry/atopic/abcd-1234-efgh'."
+          >
+            <TextInput
               isRequired
-              fieldId="simple-form-name-01"
-              helperText="Typically starts with the thingId/telemetry/ followed by a unique path identifying the topic and other selectors e.g: 'org.eclipse.muto:mycar/telemetry/atopic/abcd-1234-efgh'."
-            >
-              <TextInput
-                isRequired
-                type="text"
-                id="simple-form-name-01"
-                name="simple-form-name-01"
-                aria-describedby="simple-form-name-01-helper"
-                value={target}
-                onChange={handleTargetChange}
-              />
-            </FormGroup>
-            <ActionGroup>
-              <Button variant="primary" onClick={_e => addTelemetery()}>Add Telemetry</Button>
-            </ActionGroup>
-          </Form></CardBody>
-  </Card>)
+              type="text"
+              id="simple-form-name-01"
+              name="simple-form-name-01"
+              aria-describedby="simple-form-name-01-helper"
+              value={target}
+              onChange={handleTargetChange}
+            />
+          </FormGroup>
+          <ActionGroup>
+            <Button variant="primary" onClick={_e => addTelemetery()}>Add Telemetry</Button>
+          </ActionGroup>
+        </Form></CardBody>
+        </Card>)
         : <Spinner isSVG size="xl" aria-label="Adding telemetry" />)
     : null
+}
+
+const TelemetryWidget = ({ telemetry }) => {
+  console.log(telemetry?.target?.topic)
+
+  const { message } = useSubscription([telemetry?.target?.topic])
+  const [payload, setPayload] = useState({})
+
+  useEffect(() => {
+    if (message) {
+      const str: any = message?.message
+      if (str) {
+        const pl = JSON.parse(str)
+        setPayload(pl)
+      }
+    }
+  }, [message])
+
+  return <Card style={{ textAlign: 'left', margin: '10px' }} component="div" >
+    <CardTitle
+      style={{
+        textAlign: 'center',
+        textOverflow: 'ellipsis',
+        whiteSpace: 'nowrap',
+        overflow: 'hidden',
+        fontWeight: 500,
+        background: 'black',
+        color: 'white'
+      }}
+    >{telemetry.topic}</CardTitle>
+    <CardBody>
+      <ReactJson name={false} src={payload} />
+    </CardBody>
+  </Card>
 }
 
 const VehicleTelemetry = () => {
@@ -168,58 +203,35 @@ const VehicleTelemetry = () => {
   const [vehicle, setVehicle] = useState(location.state?.vehicle)
   const [newDefinition, setNewDefinition] = useState(location.state?.definition)
   const [telemetryList, setTelemetryList] = useState(vehicle?.features?.telemetry?.properties?.definition)
+  const [vehicleTopic] = useState(thingTopic(location.state?.vehicle?.thingId))
+  const { client } = useMqttState()
 
-  const [telemetryData, setTelemetryData] = useState({})
   const [filterValue, setFilterValue] = useState('')
   const [expanded, setExpanded] = useState('')
-  const [loading, setLoading] = useState(false)
+  const [subscriptionList, setSubscriptionList] = useState<object>({})
 
-  const [connectionStatus, setConnectionStatus] = useState(false)
-  const [mqtt, setMqtt] = useState<any>()
-  const [getStacksWithIdLike] = useLazyQuery(GETTHINGS, {
-    fetchPolicy: 'no-cache'
-  })
+  const { message } = useSubscription([`muto/${location.state?.vehicle?.thingId}`])
+
+  const { data: device, isFetching: loading, refetch } = GetDevice({ thingid: vehicle?.thingId })
 
   const galleryStyle: any = { '--pf-l-gallery--GridTemplateColumns--min': '260px' }
 
-  const onCommandResponse = (_topic, payload, _packet) => {
-    setLoading(false)
-    if (_topic !== mqtt?.targetTopic) return
-    const data: any = JSON.parse(payload.toString())
-    if (data?.status === 'STOPPED' || data?.status === 'DELETED') {
-      setTelemetryData({})
+  useEffect(() => {
+    if (device?.data?.items && device?.data?.items.length > 0) {
+      const theVehicle = device.data.items[0]
+      const tList = theVehicle.features?.telemetry?.properties?.definition
+      setVehicle(theVehicle)
+      setTelemetryList(tList)
     }
-    setLoading(true)
-    getStacksWithIdLike({
-      variables: {
-        filter: `and(eq(thingId,"${vehicle?.thingId}"))`
-      },
-      fetchPolicy: 'no-cache'
-    }).then((result) => {
-      setLoading(false)
-      if (result?.data?.things && result?.data?.things.items.length > 0) {
-        const theVehicle = result.data.things.items[0]
-        const tList = theVehicle.features?.telemetry?.properties?.definition
-        setVehicle(theVehicle)
-        setTelemetryList(tList)
-      }
-    }).finally(() => {
-      setLoading(false)
-    })
-  }
+    if (!device) {
+      refetch()
+    }
+  }, [device])
 
   useEffect(() => {
-    const cl = connect({
-      thingId: vehicle.thingId,
-      onConnect: () => setConnectionStatus(true),
-      onFailed: (err) => !!err && setConnectionStatus(false),
-      onMessage: onCommandResponse
-    })
-    setMqtt(cl)
-    doTelemetry(cl, undefined, 'reset')
+    doTelemetry(undefined, 'reset')
     return () => {
-      doTelemetry(cl, undefined, 'stop')
-      !!cl && cl.client.end(true)
+      doTelemetry(undefined, 'stop')
     }
   }, [])
 
@@ -236,53 +248,50 @@ const VehicleTelemetry = () => {
   }
 
   const stopAll = () => {
+    setSubscriptionList({})
     telemetryList?.forEach(telemetry => {
-      doTelemetry(mqtt, telemetry, 'stop')
+      doTelemetry(telemetry, 'stop')
     })
   }
-
-  const onTelemetryMessage = (_topic, payload, _packet) => {
-    setLoading(false)
-    for (let index = 0; index < telemetryList?.length; index++) {
-      const t = telemetryList[index]
-      if (t.target.topic === _topic) {
-        console.log(JSON.parse(payload.toString()))
-        telemetryData[_topic] = JSON.parse(payload.toString())
-        setTelemetryData({ ...telemetryData })
-        return true
+  useEffect(() => {
+    if (message) {
+      if (message?.topic === `muto/${location.state?.vehicle?.thingId}`) {
+        refetch()
+      } else if (message?.topic === vehicleTopic?.topic) {
+        for (let index = 0; index < telemetryList?.length; index++) {
+          const t = telemetryList[index]
+          if (t.target.topic === message?.topic) {
+            const payload: any = message?.message
+            try {
+              console.log(JSON.parse(payload))
+            } catch (e) { }
+          }
+        }
       }
     }
-    return false
-  }
+  }, [message])
 
-  const doTelemetry = (c, telemetry, action) => {
-    if (c && telemetry) {
-      c.publish(
-        `${vehicle.thingId}/agent/commands/ros/topic/echo`,{
-          topic: telemetry.topic,
-          action,
-          rate: telemetry.rate,
-          target: {
-            topic: telemetry.target.topic,
-            correlation: telemetry.target.correlation
-          }
-        })
+  const doTelemetry = (telemetry, action) => {
+    if (client && telemetry) {
+      publishCommand(client, `${vehicle.thingId}/agent/commands/ros/topic/echo`, telemetry.target, {
+        topic: telemetry.topic,
+        action,
+        rate: telemetry.rate
+      })
       if (action === 'start') {
-        c.client.subscribe(telemetry.target.topic, (err) => {
-          console.log(err)
-          setLoading(false)
-        })
-        c.on('message', onTelemetryMessage)
+        subscriptionList[telemetry.topic] = telemetry
+        setSubscriptionList({ ...subscriptionList })
+      }
+      if (action === 'stop') {
+        if (Object.prototype.hasOwnProperty.call(subscriptionList, telemetry.topic)) { delete subscriptionList[telemetry.topic] }
       }
     }
   }
 
   return (
     <>
-      {connectionStatus && <Label color="green" icon={<i className="pf-icon-connected"></i>} >connected to sandbox</Label>}
-      <TelemetryForm mqtt={mqtt} definition={newDefinition} loading={loading} onSubmit={ (a, b, c) => {
-        setLoading(true)
-        doTelemetry(a, b, c)
+      <TelemetryForm definition={newDefinition} loading={loading} onSubmit={(tel, action) => {
+        doTelemetry(tel, action)
         setNewDefinition(undefined)
       }} />
       <Card style={{ textAlign: 'left', margin: '10px' }} component="div" >
@@ -310,12 +319,12 @@ const VehicleTelemetry = () => {
           />
           <br />
 
-          { loading
+          {loading
             ? <Spinner isSVG size="xl" aria-label="Getting telemetry" />
             : <Accordion isBordered displaySize="default">
-            {!!telemetryList && filterList(telemetryList, 'topic', filterValue).map(
-              (telemetry, index) => {
-                return (
+              {!!telemetryList && filterList(telemetryList, 'topic', filterValue).map(
+                (telemetry, index) => {
+                  return (
                     <AccordionItem key={index}>
                       <AccordionToggle
                         onClick={() => {
@@ -334,17 +343,17 @@ const VehicleTelemetry = () => {
                         isCustomContent
                       >
                         <AccordionExpandedContentBody>
-                          <Label color="green" onClick={() => { doTelemetry(client, telemetry, 'start') }} icon={<i className="fas fa-play-circle"></i>}>start</Label>
-                          <Label color="orange" onClick={() => { doTelemetry(client, telemetry, 'stop') }} icon={<i className="fas fa-pause-circle"></i>}>stop</Label>
-                          <Label color="red" onClick={() => { doTelemetry(client, telemetry, 'delete') }} icon={<i className="fas fa-times-circle"></i>}>delete</Label>
+                          <Label color="green" onClick={() => { doTelemetry(telemetry, 'start') }} icon={<i className="fas fa-play-circle"></i>}>start</Label>
+                          <Label color="orange" onClick={() => { doTelemetry(telemetry, 'stop') }} icon={<i className="fas fa-pause-circle"></i>}>stop</Label>
+                          <Label color="red" onClick={() => { doTelemetry(telemetry, 'delete') }} icon={<i className="fas fa-times-circle"></i>}>delete</Label>
                           <ReactJson name={false} src={telemetry} />
                         </AccordionExpandedContentBody>
                       </AccordionContent>
                     </AccordionItem>
-                )
-              }
-            ) }
-          </Accordion> }
+                  )
+                }
+              )}
+            </Accordion>}
         </CardBody>
       </Card>
       <Grid hasGutter>
@@ -352,24 +361,7 @@ const VehicleTelemetry = () => {
           <Gallery
             hasGutter
             style={galleryStyle}>
-            {!!telemetryData && Object.keys(telemetryData).map((k, i) => {
-              return <Card style={{ textAlign: 'left', margin: '10px' }} component="div" >
-                <CardTitle
-                  style={{
-                    textAlign: 'center',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    fontWeight: 500,
-                    background: 'black',
-                    color: 'white'
-                  }}
-                >{k}</CardTitle>
-                <CardBody>
-                  <ReactJson name={false} src={telemetryData[k]} />
-                </CardBody>
-              </Card>
-            })}
+            {Object.values(subscriptionList).map((val, _i) => { return <TelemetryWidget telemetry={val} /> })}
           </Gallery>
         </GridItem>
         ;

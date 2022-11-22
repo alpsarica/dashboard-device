@@ -35,7 +35,7 @@ import {
 
 const MenuButton = ({ onClick, faicon, label }) => (<Label color="blue" onClick={onClick} icon={<i className={`fas ${faicon}`}></i>}>{label}</Label>)
 
-const VehicleCard = ({ vehicle, client = undefined, connectionStatus = undefined }) => {
+const VehicleCard = ({ vehicle }) => {
   const navigation = useHistory()
   const [descriptionList, setDescriptionList] = useState<any[]>([])
 
@@ -43,6 +43,7 @@ const VehicleCard = ({ vehicle, client = undefined, connectionStatus = undefined
     const dl:any[] = []
     dl.push({ label: 'Policy ID:', value: vehicle?.policyId })
     dl.push({ label: 'Definition:', value: vehicle?.definition })
+    // eslint-disable-next-line array-callback-return
     Object.entries(vehicle?.attributes).map(([key, value], i) => { dl.push({ label: `Attribute:${key}`, value }) })
     dl.push({ label: 'Stack:', value: vehicle?.features?.stack?.properties?.current?.stackId || 'None' })
     dl.push({ label: 'State:', value: vehicle?.features?.stack?.properties?.current?.state || 'Unknown' })
@@ -76,8 +77,7 @@ const VehicleCard = ({ vehicle, client = undefined, connectionStatus = undefined
             overflow: 'hidden'
           }}
         >
-          {vehicle?.thingId} { connectionStatus && <Label color="green" icon={<i className="pf-icon-connected"></i>} >connected to sandbox</Label>}
-
+          {vehicle?.thingId}
         </CardTitle>
       </Card>
       <Card
@@ -113,7 +113,7 @@ const VehicleCard = ({ vehicle, client = undefined, connectionStatus = undefined
             />
             <DescriptionList isHorizontal isCompact style={{ marginLeft: '40px' }}>
               {descriptionList.map((o, i) => {
-                return <DescriptionListGroup>
+                return <DescriptionListGroup key={`key-${i}`}>
                   <DescriptionListTerm>{o.label}</DescriptionListTerm>
                   <DescriptionListDescription key={i}>
                     {o.value}
@@ -128,7 +128,7 @@ const VehicleCard = ({ vehicle, client = undefined, connectionStatus = undefined
             <OverflowMenuContent isPersistent>
               <OverflowMenuGroup groupType="button">
                 {menuItems.map((o, i) => {
-                  return <OverflowMenuItem>
+                  return <OverflowMenuItem key={`key-${i}`}>
                   <MenuButton label={o.label} faicon={o.icon} onClick={() => {
                     navigation.push({
                       pathname: o.url,

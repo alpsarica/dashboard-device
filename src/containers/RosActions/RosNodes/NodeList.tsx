@@ -18,7 +18,6 @@
 import React, { useEffect, useState } from 'react'
 import {
   Card,
-  Label,
   SearchInput,
   Accordion,
   AccordionItem,
@@ -29,20 +28,23 @@ import {
   CardBody
 } from '@patternfly/react-core'
 import { useLocation } from 'react-router-dom'
-import { connect } from '../../../common/mqtt'
+import { useSubscription, useMqttState } from 'mqtt-react-hooks'
 import { filterList } from '../../../common/filter'
 import VehicleCard from '../../VehicleCard'
 import ReactJson from 'react-json-view'
+import { thingTopic, publishCommand } from '../../../common/mqtt'
 
 const RosNodeList = () => {
   const [nodes, setNodeNames] = useState<any>()
   const [filterValue, setFilterValue] = React.useState('')
-  const [connectionStatus, setConnectionStatus] = useState(false)
 
   const location = useLocation()
   const [vehicle] = useState(location.state?.vehicle)
+  const [targetTopic] = useState<any>(thingTopic(vehicle?.thingId))
   const [expanded, setExpanded] = React.useState('')
-  const [client, setClient] = useState<any>()
+
+  const { message } = useSubscription(targetTopic?.topic)
+  const { client } = useMqttState()
 
   const displaySize = 'default'
   const onToggle = (id) => {
@@ -54,34 +56,30 @@ const RosNodeList = () => {
   }
 
   useEffect(() => {
-    const cl = connect({
-      thingId: vehicle.thingId,
-      onConnect: () => setConnectionStatus(true),
-      onFailed: (err) => !!err && setConnectionStatus(false),
-      onMessage: (_topic, payload, _packet) => {
-        const data = JSON.parse(payload.toString())
-        setNodeNames(data?.nodes)
-      }
-    })
-    setClient(cl)
-    getNodes(cl)
-    return () => {
-      cl.client.end(true)
+    if (client) {
+      getNodes()
     }
-  }, [])
+  }, [client])
+
+  useEffect(() => {
+    if (message) {
+      const payload:any = message?.message
+      const data = JSON.parse(payload)
+      setNodeNames(data?.nodes)
+    }
+  }, [message])
 
   const onFilterChange = (value, _event) => {
     setFilterValue(value)
   }
 
-  const getNodes = (cl) => {
-    cl.publish(`${vehicle.thingId}/agent/commands/ros/node`, {})
+  const getNodes = () => {
+    publishCommand(client, `${vehicle.thingId}/agent/commands/ros/node`, targetTopic, {})
   }
 
   return (
     <>
-      {connectionStatus && <Label color="green" icon={<i className="pf-icon-connected"></i>} >connected to sandbox</Label>}
-      {vehicle != null && <VehicleCard client={client} vehicle={vehicle} />}
+      {vehicle != null && <VehicleCard vehicle={vehicle} />}
       <Card style={{ textAlign: 'left', margin: '10px' }} component="div" >
         <CardTitle
           style={{

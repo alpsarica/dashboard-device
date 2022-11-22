@@ -16,69 +16,40 @@
 //
 //
 import React, { useEffect, useState } from 'react'
+
 import F1TenthJoyStick from './F1TenthJoystick'
 
 import {
   Card,
-  CardBody
+  CardBody,
+  Spinner
 } from '@patternfly/react-core'
 import VehicleCard from '../VehicleCard'
 import { useLocation, useParams } from 'react-router-dom'
-import { GETTHINGS } from '../../api/query/vehicle'
-import { useLazyQuery } from '@apollo/client'
-
-import { connect } from '../../common/mqtt'
+import { GetDevice } from '../../api/query/vehicle'
 
 const VehicleDetail = () => {
   const location = useLocation()
   const params = useParams()
-  const [connectionStatus, setConnectionStatus] = useState<any>(false)
-  const [client, setClient] = useState<any>()
   const [vehicle, setVehicle] = useState(location.state?.vehicle)
-  const [getStacksWithIdLike] = useLazyQuery(GETTHINGS, {
-    fetchPolicy: 'no-cache'
-  })
-
-  const getVehicle = () => {
-    getStacksWithIdLike({
-      variables: {
-        filter: `and(eq(thingId,"${params?.thingid}"))`
-      },
-      fetchPolicy: 'no-cache'
-    }).then((result) => {
-      if (result?.data?.things) {
-        setVehicle(result?.data?.things.items[0])
-      }
-    })
-  }
+  const { data, isLoading, refetch } = GetDevice({ thingid: params?.thingid })
 
   useEffect(() => {
-    if (vehicle?.thingId) {
-      const c = connect({
-        thingId: vehicle?.thingId,
-        onConnect: () => setConnectionStatus(true),
-        onFailed: (err) => !!err && setConnectionStatus(false),
-        onMessage: (_topic, _payload, _packet) => {
-
-        }
-      })
-      setClient(c)
-      return () => {
-        c.client.end(true)
-      }
-    }
-    return ()=>{}
-  }, [vehicle])
-
-  useEffect(() => {
-    if (!vehicle) {
-      getVehicle()
-    }
+    refetch()
+    return () => {}
   }, [])
+
+  useEffect(() => {
+    if (!vehicle || data?.data?.items) {
+      if (data?.data?.items) {
+        setVehicle(data?.data?.items[0])
+      }
+    }
+  }, [data])
 
   return (
     <div>
-      {vehicle != null && <VehicleCard vehicle={vehicle} client={client} connectionStatus={connectionStatus} />}
+      {vehicle ? <VehicleCard vehicle={vehicle} /> : (isLoading ? <Spinner isSVG size="xl" aria-label="Adding telemetry" /> : null)}
 
       <Card
         style={{
@@ -88,7 +59,7 @@ const VehicleDetail = () => {
         component="div"
       >
         <CardBody>
-          <F1TenthJoyStick vehicle={vehicle} client={client} />
+          <F1TenthJoyStick vehicle={vehicle} />
         </CardBody>
         <br />
       </Card>

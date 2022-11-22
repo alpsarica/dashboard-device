@@ -31,18 +31,17 @@ import {
   CardTitle
 } from '@patternfly/react-core'
 
-import { connect } from '../../../common/mqtt'
+import { useSubscription, useMqttState } from 'mqtt-react-hooks'
+import { thingTopic, publishCommand } from '../../../common/mqtt'
+
 import { filterList } from '../../../common/filter'
 import VehicleCard from '../../VehicleCard'
 import ReactJson from 'react-json-view'
 import { v4 as uuidv4 } from 'uuid'
 
 const TopicList = () => {
-  const [connectionStatus, setConnectionStatus] = useState<any>(false)
   const [topicList, setTopicList] = useState(null)
   const [filterValue, setFilterValue] = useState('')
-  const [client, setClient] = useState<any>()
-
   const [expanded, setExpanded] = React.useState('')
 
   const location = useLocation()
@@ -59,23 +58,27 @@ const TopicList = () => {
     }
   }
 
+  const [targetTopic] = useState<any>(thingTopic(vehicle?.thingId))
+  const { message } = useSubscription(targetTopic?.topic)
+  const { client } = useMqttState()
+
   useEffect(() => {
-    const c = connect({
-      thingId: vehicle.thingId,
-      onConnect: () => setConnectionStatus(true),
-      onFailed: (err) => !!err && setConnectionStatus(false),
-      onMessage: (_topic, payload, _packet) => {
-        const data = JSON.parse(payload.toString())
-        analyzeResponse(data)
-      }
-    })
-    setClient(c)
-    getTopics(c)
-    console.log(vehicle)
-    return () => {
-      c.client.end(true)
+    if (client) {
+      getTopics()
     }
-  }, [])
+  }, [client])
+
+  useEffect(() => {
+    if (message) {
+      const payload:any = message?.message
+      const data = JSON.parse(payload)
+      analyzeResponse(data)
+    }
+  }, [message])
+
+  const getTopics = () => {
+    publishCommand(client, `${vehicle.thingId}/agent/commands/ros/topic`, targetTopic, {})
+  }
 
   const onFilterChange = (value, _event) => {
     setFilterValue(value)
@@ -111,13 +114,9 @@ const TopicList = () => {
     }
   }
 
-  const getTopics = (client) => {
-    client.publish(`${vehicle.thingId}/agent/commands/ros/topic`, {})
-  }
-
   return (
     <>
-      {vehicle != null && <VehicleCard client={client} vehicle={vehicle} connectionStatus={connectionStatus} />}
+      {vehicle != null && <VehicleCard vehicle={vehicle} />}
       <Card style={{ textAlign: 'left', margin: '10px' }} component="div" >
         <CardTitle
           style={{

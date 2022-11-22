@@ -19,7 +19,6 @@ import React, { useEffect, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 
 import {
-  Label,
   SearchInput,
   Accordion,
   AccordionItem,
@@ -30,22 +29,42 @@ import {
   CardBody,
   CardTitle
 } from '@patternfly/react-core'
+import { useSubscription, useMqttState } from 'mqtt-react-hooks'
 
-import { connect } from '../../../common/mqtt'
+import { thingTopic, publishCommand } from '../../../common/mqtt'
 import { filterList } from '../../../common/filter'
 import VehicleCard from '../../VehicleCard'
 import ReactJson from 'react-json-view'
 
 const ParamList = () => {
-  const [connectionStatus, setConnectionStatus] = useState<any>(false)
   const [parameters, setParamNames] = useState<any>(null)
   const [filterValue, setFilterValue] = React.useState('')
 
   const location = useLocation()
   const [vehicle] = useState(location.state?.vehicle)
-  const [client, setClient] = useState<any>()
-
   const [expanded, setExpanded] = React.useState('')
+
+  const [targetTopic] = useState<any>(thingTopic(vehicle?.thingId))
+  const { message } = useSubscription(targetTopic?.topic)
+  const { client } = useMqttState()
+
+  useEffect(() => {
+    if (client) {
+      getParameters()
+    }
+  }, [client])
+
+  useEffect(() => {
+    if (message) {
+      const payload:any = message?.message
+      const data = JSON.parse(payload)
+      setParamNames(data?.params)
+    }
+  }, [message])
+
+  const getParameters = () => {
+    publishCommand(client, `${vehicle.thingId}/agent/commands/ros/param`, targetTopic, {})
+  }
 
   const displaySize = 'default'
   const onToggle = (id) => {
@@ -56,34 +75,13 @@ const ParamList = () => {
     }
   }
 
-  useEffect(() => {
-    const c = connect({
-      thingId: vehicle.thingId,
-      onConnect: () => setConnectionStatus(true),
-      onFailed: (err) => !!err && setConnectionStatus(false),
-      onMessage: (_topic, payload, _packet) => {
-        const data = JSON.parse(payload.toString())
-        setParamNames(data.params)
-      }
-    })
-    setClient(client)
-    getParameters(c)
-    return () => {
-      c.client.end(true)
-    }
-  }, [])
-
   const onFilterChange = (value, _event) => {
     setFilterValue(value)
   }
 
-  const getParameters = (client) => {
-    client.publish(`${vehicle.thingId}/agent/commands/ros/param`, {})
-  }
-
   return (
     <>
-      {vehicle != null && <VehicleCard client={client} vehicle={vehicle} connectionStatus={connectionStatus} />}
+      {vehicle != null && <VehicleCard vehicle={vehicle}/>}
       <Card style={{ textAlign: 'left', margin: '10px' }} component="div" >
       <CardTitle
         style={{
