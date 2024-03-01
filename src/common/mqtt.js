@@ -17,55 +17,36 @@
 import axios from 'axios'
 import { v4 as uuidv4 } from 'uuid'
 
-export function thingTopic(thing) {
+export function thingTopic (thing) {
   const correlation = uuidv4()
   const topic = `db-${thing}/agent/${correlation}`
   return { topic, correlation }
 }
 
-export function publishCommand(client, topic, target, payload) {
-  client.publish(
-    topic,
-    JSON.stringify({
-      ...payload,
-      target
-    }),
-    {
-      properties: {
-        responseTopic: target.topic,
-        correlationData: target.correlation
-      }
-    })
-}
+export async function publishCommand (client, thing, messageSubject, payloadValue = '') {
+  const thingSplitted = thing.split(':')
+  const thingNamespace = thingSplitted[0]
+  const thingId = thingSplitted[1]
 
-export function ping(client, thing, response) {
+  const thingTopic = `muto/${thing}`
   const correlationId = uuidv4()
-  if (!client || !thing) return
-  const ttopic = `ping-${thing}/agent/${correlationId}`
-  client.subscribe(ttopic, (_err) => { })
-  client.on('message', (topic, payload, packet) => {
-    if (topic === ttopic) {
-      response(topic, payload, packet)
-      client.unsubscribe(ttopic)
-    }
-  })
-  client.publish(
-    `${thing}/agent/commands/foo/bar`, JSON.stringify({
-      foo: 'bar',
-      target: {
-        topic: ttopic,
-        correlation: correlationId
-      }
-    }),
-    {
-      properties: {
-        responseTopic: ttopic,
-        correlationData: correlationId
-      }
-    })
+
+  const payload = {
+    topic: `${thingNamespace}/${thingId}/things/live/messages/${messageSubject}`,
+    headers: {
+      'content-type': 'application/json',
+      'correlation-data': correlationId
+    },
+    path: `/inbox/messages/${messageSubject}`,
+    value: payloadValue
+  }
+
+  client.publish(thingTopic, JSON.stringify(payload))
+
+  return correlationId
 }
 
-export function ping2(client, thing, response) {
+export function ping (client, thing, response) {
   const thingSplitted = thing.split(':')
   const thingNamespace = thingSplitted[0]
   const thingId = thingSplitted[1]
@@ -91,8 +72,8 @@ export function ping2(client, thing, response) {
     const payloadJSON = JSON.parse(payload)
     if (
       (thingTopic === topic) &&
-      (correlationId == payloadJSON.headers["correlation-data"]) &&
-      (payloadJSON.path.startsWith("/outbox"))
+      (correlationId === payloadJSON.headers['correlation-data']) &&
+      (payloadJSON.path.startsWith('/outbox'))
     ) {
       response(topic, payload, packet)
       client.unsubscribe(thingTopic)
@@ -101,8 +82,7 @@ export function ping2(client, thing, response) {
   client.publish(thingTopic, JSON.stringify(payload))
 }
 
-
-export function ping3(client, thing, response) {
+export function ping3 (client, thing, response) {
   const thingSplitted = thing.split(':')
   const thingNamespace = thingSplitted[0]
   const thingId = thingSplitted[1]
@@ -117,7 +97,7 @@ export function ping3(client, thing, response) {
     headers: {
       'Content-Type': 'application/json'
     }
-  };
+  }
 
   axios.post(url, data, config)
 }

@@ -44,7 +44,7 @@ import {
 
 import CustomHeader from '../../components/CustomHeader'
 import { VFILTER, things } from '../../api/query/vehicle'
-import { ping2 } from '../../common/mqtt'
+import { ping } from '../../common/mqtt'
 
 export const VehicleState = ({ vehicle }) => {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -54,7 +54,7 @@ export const VehicleState = ({ vehicle }) => {
   const icon = 'fas fa-info-circle'
 
   useEffect(() => {
-    ping2(client, vehicle.thingId, () => { setState('online') })
+    ping(client, vehicle.thingId, () => { setState('online') })
   }, [client, vehicle])
 
   return (

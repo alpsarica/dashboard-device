@@ -43,6 +43,7 @@ const TopicList = () => {
   const [topicList, setTopicList] = useState(null)
   const [filterValue, setFilterValue] = useState('')
   const [expanded, setExpanded] = React.useState('')
+  const [nodeCommandCorrelationId, setNodeCommandCorrelationId] = React.useState('')
 
   const location = useLocation()
   const navigation = useHistory()
@@ -59,7 +60,7 @@ const TopicList = () => {
   }
 
   const [targetTopic] = useState<any>(thingTopic(vehicle?.thingId))
-  const { message } = useSubscription(targetTopic?.topic)
+  const { message } = useSubscription(`muto/${vehicle.thingId}`)
   const { client } = useMqttState()
 
   useEffect(() => {
@@ -69,15 +70,30 @@ const TopicList = () => {
   }, [client])
 
   useEffect(() => {
-    if (message) {
+    if (message && nodeCommandCorrelationId) {
       const payload:any = message?.message
       const data = JSON.parse(payload)
-      analyzeResponse(data)
+      if (
+        (data.headers['correlation-data'] === nodeCommandCorrelationId) &&
+        (data.path.startsWith('/outbox'))
+      ) {
+        const topics = JSON.parse(data.value)
+        analyzeResponse(topics)
+      }
     }
-  }, [message])
+  }, [message, nodeCommandCorrelationId])
 
-  const getTopics = () => {
-    publishCommand(client, `${vehicle.thingId}/agent/commands/ros/topic`, targetTopic, {})
+  // useEffect(() => {
+  //   if (message) {
+  //     const payload:any = message?.message
+  //     const data = JSON.parse(payload)
+  //     analyzeResponse(data)
+  //   }
+  // }, [message])
+
+  const getTopics = async () => {
+    const correlationId = await publishCommand(client, vehicle.thingId, 'agent/commands/ros/topic')
+    setNodeCommandCorrelationId(correlationId)
   }
 
   const onFilterChange = (value, _event) => {
@@ -109,7 +125,6 @@ const TopicList = () => {
           })
         }
       })
-      console.log(topics)
       setTopicList(topics)
     }
   }

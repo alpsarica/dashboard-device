@@ -42,8 +42,9 @@ const RosNodeList = () => {
   const [vehicle] = useState(location.state?.vehicle)
   const [targetTopic] = useState<any>(thingTopic(vehicle?.thingId))
   const [expanded, setExpanded] = React.useState('')
+  const [nodeCommandCorrelationId, setNodeCommandCorrelationId] = React.useState('')
 
-  const { message } = useSubscription(targetTopic?.topic)
+  const { message } = useSubscription(`muto/${vehicle.thingId}`)
   const { client } = useMqttState()
 
   const displaySize = 'default'
@@ -62,19 +63,27 @@ const RosNodeList = () => {
   }, [client])
 
   useEffect(() => {
-    if (message) {
+    if (message && nodeCommandCorrelationId) {
       const payload:any = message?.message
       const data = JSON.parse(payload)
-      setNodeNames(data?.nodes)
+
+      if (
+        (data.headers['correlation-data'] === nodeCommandCorrelationId) &&
+        (data.path.startsWith('/outbox'))
+      ) {
+        const nodes = JSON.parse(data.value).nodes
+        setNodeNames(nodes)
+      }
     }
-  }, [message])
+  }, [message, nodeCommandCorrelationId])
 
   const onFilterChange = (value, _event) => {
     setFilterValue(value)
   }
 
-  const getNodes = () => {
-    publishCommand(client, `${vehicle.thingId}/agent/commands/ros/node`, targetTopic, {})
+  const getNodes = async () => {
+    const correlationId = await publishCommand(client, vehicle.thingId, 'agent/commands/ros/node')
+    setNodeCommandCorrelationId(correlationId)
   }
 
   return (
