@@ -73,10 +73,11 @@ const VehicleStack = () => {
   }, [message])
 
   const onStackClick = (stack, action) => {
-    publishCommand(client, `${location.state?.vehicle?.thingId}/stack/commands/${action}`, targetTopic, {
+    publishCommand(client, vehicle.thingId, `stack/commands/${action}`, {
       name: stack.name,
       stackId: stack.thingId
     })
+    console.log(stack.state)
 
     setStackInProgress(stack.thingId)
   }

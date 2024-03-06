@@ -45,8 +45,9 @@ const ParamList = () => {
   const [expanded, setExpanded] = React.useState('')
 
   const [targetTopic] = useState<any>(thingTopic(vehicle?.thingId))
-  const { message } = useSubscription(targetTopic?.topic)
+  const { message } = useSubscription(`muto/${vehicle.thingId}`)
   const { client } = useMqttState()
+  const [paramCommandCorrelationId, setParamCommandCorrelationId] = React.useState('')
 
   useEffect(() => {
     if (client) {
@@ -55,15 +56,22 @@ const ParamList = () => {
   }, [client])
 
   useEffect(() => {
-    if (message) {
+    if (message && paramCommandCorrelationId) {
       const payload:any = message?.message
       const data = JSON.parse(payload)
-      setParamNames(data?.params)
+      if (
+        (data.headers['correlation-id'] === paramCommandCorrelationId) &&
+        (data.path.startsWith('/outbox'))
+      ) {
+        const params = JSON.parse(data.value).params
+        setParamNames(params)
+      }
     }
-  }, [message])
+  }, [message, paramCommandCorrelationId])
 
-  const getParameters = () => {
-    publishCommand(client, `${vehicle.thingId}/agent/commands/ros/param`, targetTopic, {})
+  const getParameters = async () => {
+    const correlationId = await publishCommand(client, vehicle.thingId, 'agent/commands/ros/param')
+    setParamCommandCorrelationId(correlationId)
   }
 
   const displaySize = 'default'

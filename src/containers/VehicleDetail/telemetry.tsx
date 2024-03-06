@@ -47,7 +47,7 @@ import { useMqttState, useSubscription } from 'mqtt-react-hooks'
 import ReactJson from 'react-json-view'
 import { filterList } from '../../common/filter'
 import { GetDevice } from '../../api/query/vehicle'
-import { publishCommand, thingTopic } from '../../common/mqtt'
+import { publishCommand, publishCommand2, thingTopic } from '../../common/mqtt'
 
 const TelemetryForm = ({ definition, onSubmit, loading }) => {
   const [rate, setRate] = useState(definition?.rate)
@@ -85,7 +85,7 @@ const TelemetryForm = ({ definition, onSubmit, loading }) => {
                 }
                 bodyContent={
                   <div>
-                    Milli seconds between each message.
+                    Milliseconds between each message.
                   </div>
                 }
               >
@@ -273,7 +273,8 @@ const VehicleTelemetry = () => {
 
   const doTelemetry = (telemetry, action) => {
     if (client && telemetry) {
-      publishCommand(client, `${vehicle.thingId}/agent/commands/ros/topic/echo`, telemetry.target, {
+      publishCommand(client, vehicle.thingId, 'agent/commands/ros/topic/echo', {
+        target: telemetry.target,
         topic: telemetry.topic,
         action,
         rate: telemetry.rate

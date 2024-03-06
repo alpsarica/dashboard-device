@@ -68,7 +68,7 @@ const RosNodeList = () => {
       const data = JSON.parse(payload)
 
       if (
-        (data.headers['correlation-data'] === nodeCommandCorrelationId) &&
+        (data.headers['correlation-id'] === nodeCommandCorrelationId) &&
         (data.path.startsWith('/outbox'))
       ) {
         const nodes = JSON.parse(data.value).nodes

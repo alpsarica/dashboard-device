@@ -23,7 +23,7 @@ export function thingTopic (thing) {
   return { topic, correlation }
 }
 
-export async function publishCommand (client, thing, messageSubject, payloadValue = '') {
+export async function publishCommand (client, thing, messageSubject, payloadValue = {}) {
   const thingSplitted = thing.split(':')
   const thingNamespace = thingSplitted[0]
   const thingId = thingSplitted[1]
@@ -35,7 +35,8 @@ export async function publishCommand (client, thing, messageSubject, payloadValu
     topic: `${thingNamespace}/${thingId}/things/live/messages/${messageSubject}`,
     headers: {
       'content-type': 'application/json',
-      'correlation-data': correlationId
+      'reply-to': `muto/${thing}`,
+      'correlation-id': correlationId
     },
     path: `/inbox/messages/${messageSubject}`,
     value: payloadValue
@@ -58,10 +59,11 @@ export function ping (client, thing, response) {
     topic: `${thingNamespace}/${thingId}/things/live/messages/agent/commands/ping`,
     headers: {
       'content-type': 'application/json',
-      'correlation-data': correlationId
+      'reply-to': `muto/${thing}`,
+      'correlation-id': correlationId
     },
     path: '/inbox/messages/agent/commands/ping',
-    value: ''
+    value: {}
   }
 
   if (!client || !thing) return
@@ -72,7 +74,7 @@ export function ping (client, thing, response) {
     const payloadJSON = JSON.parse(payload)
     if (
       (thingTopic === topic) &&
-      (correlationId === payloadJSON.headers['correlation-data']) &&
+      (correlationId === payloadJSON.headers['correlation-id']) &&
       (payloadJSON.path.startsWith('/outbox'))
     ) {
       response(topic, payload, packet)
@@ -80,24 +82,4 @@ export function ping (client, thing, response) {
     }
   })
   client.publish(thingTopic, JSON.stringify(payload))
-}
-
-export function ping3 (client, thing, response) {
-  const thingSplitted = thing.split(':')
-  const thingNamespace = thingSplitted[0]
-  const thingId = thingSplitted[1]
-
-  const url = `https://sandbox.composiv.ai/api/2/things/${thingNamespace}:${thingId}/inbox/messages/agent/commands/ping`
-  const data = {}
-  const config = {
-    auth: {
-      username: 'ditto',
-      password: 'ditto'
-    },
-    headers: {
-      'Content-Type': 'application/json'
-    }
-  }
-
-  axios.post(url, data, config)
 }
